@@ -3,25 +3,38 @@ from levels import *
 
 pg.init()
 
+# game values
 WIDTH = 1000
 HEIGHT = 1000
 TILE_SIZE = 50
 game_over = False
 score = 0
 
+# screen
 screen = pg.display.set_mode((WIDTH, HEIGHT))
 pg.display.set_caption('opossum adventure')
 
+# images
 undg_bg = pg.image.load('source/undg_bg.png')
 out_bg = pg.image.load('source/out_bg.png')
 restart_img = pg.image.load('source/restart_img.png')
 menu_bg = pg.image.load('source/menu_bg.png')
 results_bg = pg.image.load('source/results_bg.png')
+hint1 = pg.image.load('source/hint1.png')
+hint2 = pg.image.load('source/hint2.png')
+end_img = pg.image.load('source/end.png')
+end_img = pg.transform.scale(end_img, (40, 120))
 
+# font
 font = pg.font.SysFont('Aerial', 60)
 color = (255, 255, 255)
 
+# sounds
+sound1 = pg.mixer.Sound('source/music.wav')
+sound1.set_volume(0.01)
 
+
+# button class
 class Button():
     def __init__(self, x, y, image):
         self.image = image
@@ -44,6 +57,7 @@ class Button():
         return action
 
 
+# right top corner info about score
 def draw_score(score, x, y):
     img = font.render(score, True, color)
     worm = pg.image.load('source/worm.png')
@@ -52,14 +66,16 @@ def draw_score(score, x, y):
     screen.blit(img, (x, y))
 
 
+# first screen
 def menu():
     global current_bg, start_btn, exit_btn
     current_bg = menu_bg
-    start_btn = Button(420, 200, pg.image.load('source/play.png'))
+    start_btn = Button(580, 425, pg.image.load('source/play.png'))
     exit_btn = Button(215, 425, pg.image.load('source/exit.png'))
     return {'map': 0, 'finish': 0}
 
 
+# last screen
 def results():
     global current_bg
     current_bg = results_bg
@@ -68,6 +84,7 @@ def results():
 
 clock = pg.time.Clock()
 
+# level system
 levels = [menu(), level1(), level2(), level3(), level4(), level5(), level6(), level7(), results()]
 level_index = 0
 current_lvl = levels[level_index]['map']
@@ -75,6 +92,7 @@ current_finish = levels[level_index]['finish']
 current_bg = undg_bg
 
 
+# restart of the level
 def new_attempt():
     global redishes, world, player, restart_btn, worms, old_score
     redishes = pg.sprite.Group()
@@ -86,6 +104,7 @@ def new_attempt():
     restart_btn = Button(370, 500, restart_img)
 
 
+# switch to the next level
 def next_level():
     global level_index, current_lvl, current_finish, current_bg
     if levels[level_index + 1]['bg'] != 0:
@@ -101,6 +120,7 @@ def next_level():
         results()
 
 
+# class of level
 class World():
     def __init__(self, map):
 
@@ -111,6 +131,8 @@ class World():
         images = [dirt_img, grass_img]
 
         row_count = 0
+
+        # tiles upload
         for row in map:
             col_count = 0
             for tile in row:
@@ -134,16 +156,33 @@ class World():
                 if tile == 4:
                     worm = Worm(col_count * TILE_SIZE, row_count * TILE_SIZE + (TILE_SIZE // 2))
                     worms.add(worm)
+                if tile == 5:
+                    img = pg.transform.scale(hint2, (150, 150))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * TILE_SIZE
+                    img_rect.y = row_count * TILE_SIZE
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                if tile == 6:
+                    img = pg.transform.scale(hint1, (200, 140))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * TILE_SIZE
+                    img_rect.y = row_count * TILE_SIZE
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
                 col_count += 1
             row_count += 1
 
+    # tiles render
     def update(self):
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
 
 
+# player class
 class Player():
     def __init__(self, x, y, finish):
+        # downloading several images for animations
         self.images_right = []
         self.images_left = []
         self.finish = finish
@@ -168,6 +207,7 @@ class Player():
         self.dir = 0
         self.can_jump = False
 
+    # render of the player
     def update(self):
 
         dx = 0
@@ -175,6 +215,8 @@ class Player():
         walk_cooldown = 20
 
         global game_over
+
+        # while player alive
         if not game_over:
             key = pg.key.get_pressed()
 
@@ -236,13 +278,17 @@ class Player():
             # update
             self.rect.x += dx
             self.rect.y += dy
+
+        # if player is dead
         elif game_over:
             self.image = self.dead_image
+        # if player completed the level
         if self.rect.x >= self.finish[0] and self.rect.y <= self.finish[1]:
             next_level()
         screen.blit(self.image, self.rect)
 
 
+# enemy class of reddish
 class Redish(pg.sprite.Sprite):
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
@@ -253,6 +299,7 @@ class Redish(pg.sprite.Sprite):
         self.rect.y = y
 
 
+# coin class of a worm
 class Worm(pg.sprite.Sprite):
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
@@ -263,6 +310,7 @@ class Worm(pg.sprite.Sprite):
         self.rect.y = y
 
 
+# first screen must be the menu screen
 menu()
 
 running = True
@@ -272,23 +320,33 @@ while running:
         if event.type == pg.QUIT:
             running = False
     screen.blit(current_bg, (0, 0))
+
+    # what to render if it is menu
     if current_bg == menu_bg:
         if start_btn.draw():
             pg.init()
             next_level()
         if exit_btn.draw():
             break
+
+    # what to render if it is results screen
     elif current_bg == results_bg:
         draw_score('Your score is: ' + str(score), 370, 490)
+
+    # rendering levels themselves
     else:
+        sound1.play()
         world.update()
+        screen.blit(end_img, (current_finish[0] + 105, current_finish[1] - 70))
         redishes.draw(screen)
         worms.draw(screen)
+        # checking for coin collision
         if pg.sprite.spritecollide(player, worms, True):
             score += 1
         draw_score(str(score), 910, 70)
         player.update()
 
+        # restarting the level
         if game_over:
             if restart_btn.draw():
                 game_over = False
