@@ -1,4 +1,5 @@
 import pygame as pg
+from levels import *
 
 pg.init()
 
@@ -6,36 +7,98 @@ WIDTH = 1000
 HEIGHT = 1000
 TILE_SIZE = 50
 game_over = False
-
-undg_bg = pg.image.load('source/undg_bg.png')
-out_bg = pg.image.load('source/out_bg.png')
-
-clock = pg.time.Clock()
+score = 0
 
 screen = pg.display.set_mode((WIDTH, HEIGHT))
 pg.display.set_caption('opossum adventure')
 
+undg_bg = pg.image.load('source/undg_bg.png')
+out_bg = pg.image.load('source/out_bg.png')
+restart_img = pg.image.load('source/restart_img.png')
+menu_bg = pg.image.load('source/menu_bg.png')
+results_bg = pg.image.load('source/results_bg.png')
 
-map = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+font = pg.font.SysFont('Aerial', 60)
+color = (255, 255, 255)
+
+
+class Button():
+    def __init__(self, x, y, image):
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.clicked = False
+
+    def draw(self):
+        action = False
+        pos = pg.mouse.get_pos()
+        if self.rect.collidepoint(pos):
+            if pg.mouse.get_pressed()[0] and not self.clicked:
+                self.clicked = True
+                action = True
+
+        if not pg.mouse.get_pressed()[0]:
+            self.clicked = False
+        screen.blit(self.image, self.rect)
+        return action
+
+
+def draw_score(score, x, y):
+    img = font.render(score, True, color)
+    worm = pg.image.load('source/worm.png')
+    worm = pg.transform.scale(worm, (40, 40))
+    screen.blit(worm, (x - 50, y - 5))
+    screen.blit(img, (x, y))
+
+
+def menu():
+    global current_bg, start_btn, exit_btn
+    current_bg = menu_bg
+    start_btn = Button(420, 200, pg.image.load('source/play.png'))
+    exit_btn = Button(215, 425, pg.image.load('source/exit.png'))
+    return {'map': 0, 'finish': 0}
+
+
+def results():
+    global current_bg
+    current_bg = results_bg
+    return {'map': 0, 'finish': 0, 'bg': 0}
+
+
+clock = pg.time.Clock()
+
+levels = [menu(), level1(), level2(), level3(), level4(), level5(), level6(), level7(), results()]
+level_index = 0
+current_lvl = levels[level_index]['map']
+current_finish = levels[level_index]['finish']
+current_bg = undg_bg
+
+
+def new_attempt():
+    global redishes, world, player, restart_btn, worms, old_score
+    redishes = pg.sprite.Group()
+    worms = pg.sprite.Group()
+    world = World(current_lvl)
+    player = Player(100, HEIGHT - 300, current_finish)
+    old_score = score
+
+    restart_btn = Button(370, 500, restart_img)
+
+
+def next_level():
+    global level_index, current_lvl, current_finish, current_bg
+    if levels[level_index + 1]['bg'] != 0:
+        level_index += 1
+        current_lvl = levels[level_index]['map']
+        current_finish = levels[level_index]['finish']
+        if levels[level_index]['bg'] == 'undg':
+            current_bg = undg_bg
+        else:
+            current_bg = out_bg
+        new_attempt()
+    else:
+        results()
 
 
 class World():
@@ -68,6 +131,9 @@ class World():
                 if tile == 3:
                     redish = Redish(col_count * TILE_SIZE, row_count * TILE_SIZE + (TILE_SIZE // 2))
                     redishes.add(redish)
+                if tile == 4:
+                    worm = Worm(col_count * TILE_SIZE, row_count * TILE_SIZE + (TILE_SIZE // 2))
+                    worms.add(worm)
                 col_count += 1
             row_count += 1
 
@@ -77,9 +143,10 @@ class World():
 
 
 class Player():
-    def __init__(self, x, y):
+    def __init__(self, x, y, finish):
         self.images_right = []
         self.images_left = []
+        self.finish = finish
         self.index = 0
         self.counter = 0
         for num in range(1, 3):
@@ -99,6 +166,7 @@ class Player():
         self.vel_y = 0
         self.on_ground = True
         self.dir = 0
+        self.can_jump = False
 
     def update(self):
 
@@ -121,7 +189,7 @@ class Player():
                 self.dir = 1
                 self.counter += 1
                 self.image = self.images_right[self.index]
-            if key[pg.K_UP] and self.on_ground:
+            if key[pg.K_UP] and self.on_ground and self.can_jump:
                 self.vel_y = -20
                 self.on_ground = False
             if not key[pg.K_UP]:
@@ -137,6 +205,7 @@ class Player():
             dy += self.vel_y
 
             # collision
+            self.can_jump = False
             for tile in world.tile_list:
                 if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                     dx = 0
@@ -146,9 +215,10 @@ class Player():
                         self.vel_y = 0
                     elif self.vel_y >= 0:
                         dy = tile[1].top - self.rect.bottom
+                        self.can_jump = True
                         self.vel_y = 0
 
-            # collision with redish
+            # collision with reddish
             if pg.sprite.spritecollide(self, redishes, False):
                 game_over = True
 
@@ -168,7 +238,8 @@ class Player():
             self.rect.y += dy
         elif game_over:
             self.image = self.dead_image
-
+        if self.rect.x >= self.finish[0] and self.rect.y <= self.finish[1]:
+            next_level()
         screen.blit(self.image, self.rect)
 
 
@@ -176,16 +247,23 @@ class Redish(pg.sprite.Sprite):
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
         img = pg.image.load('source/redish.png')
-        self.image = pg.transform.scale(img, (TILE_SIZE, TILE_SIZE // 2))
+        self.image = pg.transform.scale(img, (TILE_SIZE - 20, TILE_SIZE // 2))
+        self.rect = self.image.get_rect()
+        self.rect.x = x + 10
+        self.rect.y = y
+
+
+class Worm(pg.sprite.Sprite):
+    def __init__(self, x, y):
+        pg.sprite.Sprite.__init__(self)
+        img = pg.image.load('source/worm.png')
+        self.image = pg.transform.scale(img, (TILE_SIZE, TILE_SIZE))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
 
 
-redishes = pg.sprite.Group()
-world = World(map)
-player = Player(100, HEIGHT - 300)
-
+menu()
 
 running = True
 while running:
@@ -193,9 +271,28 @@ while running:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             running = False
-    screen.blit(undg_bg, (0, 0))
-    world.update()
-    redishes.draw(screen)
-    player.update()
+    screen.blit(current_bg, (0, 0))
+    if current_bg == menu_bg:
+        if start_btn.draw():
+            pg.init()
+            next_level()
+        if exit_btn.draw():
+            break
+    elif current_bg == results_bg:
+        draw_score('Your score is: ' + str(score), 370, 490)
+    else:
+        world.update()
+        redishes.draw(screen)
+        worms.draw(screen)
+        if pg.sprite.spritecollide(player, worms, True):
+            score += 1
+        draw_score(str(score), 910, 70)
+        player.update()
+
+        if game_over:
+            if restart_btn.draw():
+                game_over = False
+                score = old_score
+                new_attempt()
     pg.display.update()
 pg.quit()
