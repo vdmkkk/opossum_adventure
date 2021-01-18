@@ -9,6 +9,7 @@ HEIGHT = 1000
 TILE_SIZE = 50
 game_over = False
 score = 0
+timer = 0
 
 # screen
 screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -26,12 +27,15 @@ end_img = pg.image.load('source/end.png')
 end_img = pg.transform.scale(end_img, (40, 120))
 
 # font
-font = pg.font.SysFont('Aerial', 60)
+font = pg.font.SysFont('Aerial bold', 60)
 color = (255, 255, 255)
+
+# timer event
+pg.time.set_timer(pg.USEREVENT, 10)
 
 # sounds
 sound1 = pg.mixer.Sound('source/music.wav')
-sound1.set_volume(0.01)
+sound1.set_volume(0)
 
 
 # button class
@@ -58,11 +62,12 @@ class Button():
 
 
 # right top corner info about score
-def draw_score(score, x, y):
+def draw_score(score, x, y, draw_img=True):
     img = font.render(score, True, color)
     worm = pg.image.load('source/worm.png')
     worm = pg.transform.scale(worm, (40, 40))
-    screen.blit(worm, (x - 50, y - 5))
+    if draw_img:
+        screen.blit(worm, (x - 50, y - 5))
     screen.blit(img, (x, y))
 
 
@@ -77,8 +82,9 @@ def menu():
 
 # last screen
 def results():
-    global current_bg
+    global current_bg, regame_btn
     current_bg = results_bg
+    regame_btn = Button(370, 600, restart_img)
     return {'map': 0, 'finish': 0, 'bg': 0}
 
 
@@ -101,7 +107,7 @@ def new_attempt():
     player = Player(100, HEIGHT - 300, current_finish)
     old_score = score
 
-    restart_btn = Button(370, 500, restart_img)
+    restart_btn = Button(345, 500, restart_img)
 
 
 # switch to the next level
@@ -151,7 +157,13 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                 if tile == 3:
-                    redish = Redish(col_count * TILE_SIZE, row_count * TILE_SIZE + (TILE_SIZE // 2))
+                    redish = Redish(col_count * TILE_SIZE, row_count * TILE_SIZE + (TILE_SIZE // 2), 0)
+                    redishes.add(redish)
+                if tile == 7:
+                    redish = Redish(col_count * TILE_SIZE, row_count * TILE_SIZE + (TILE_SIZE // 2), -1)
+                    redishes.add(redish)
+                if tile == 8:
+                    redish = Redish(col_count * TILE_SIZE, row_count * TILE_SIZE + (TILE_SIZE // 2), 1)
                     redishes.add(redish)
                 if tile == 4:
                     worm = Worm(col_count * TILE_SIZE, row_count * TILE_SIZE + (TILE_SIZE // 2))
@@ -290,13 +302,26 @@ class Player():
 
 # enemy class of reddish
 class Redish(pg.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, ang):
         pg.sprite.Sprite.__init__(self)
         img = pg.image.load('source/redish.png')
-        self.image = pg.transform.scale(img, (TILE_SIZE - 20, TILE_SIZE // 2))
-        self.rect = self.image.get_rect()
-        self.rect.x = x + 10
-        self.rect.y = y
+        img_90 = pg.image.load('source/redish_90.png')
+        img_270 = pg.image.load('source/redish_270.png')
+        if ang == 0:
+            self.image = pg.transform.scale(img, (TILE_SIZE - 20, TILE_SIZE // 2))
+            self.rect = self.image.get_rect()
+            self.rect.x = x + 10
+            self.rect.y = y
+        if ang == 1:
+            self.image = pg.transform.scale(img_90, (TILE_SIZE - 10, TILE_SIZE // 2 + 8))
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.y = y - 15
+        elif ang == -1:
+            self.image = pg.transform.scale(img_270, (TILE_SIZE - 10, TILE_SIZE // 2 + 8))
+            self.rect = self.image.get_rect()
+            self.rect.x = x + 10
+            self.rect.y = y - 15
 
 
 # coin class of a worm
@@ -314,43 +339,71 @@ class Worm(pg.sprite.Sprite):
 menu()
 
 running = True
+first_launch = True
 while running:
-    clock.tick(120)
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            running = False
-    screen.blit(current_bg, (0, 0))
+    time = '0'
+    minutes = 0
+    playing = True
+    pg.init()
+    if not first_launch:
+        next_level()
+    while playing:
+        clock.tick(120)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                playing = False
+                running = False
+            elif event.type == pg.USEREVENT and level_index != 0 and current_bg != results_bg:
+                timer += 0.01
+                if timer > 60:
+                    minutes += 1
+                    timer -= 60
+                if timer < 10:
+                    time = '0' + str(minutes) + ':0' + str(timer)[:1] + ':' + str(timer)[2:4]
+                else:
+                    time = '0' + str(minutes) + ':' + str(timer)[:2] + ':' + str(timer)[3:5]
 
-    # what to render if it is menu
-    if current_bg == menu_bg:
-        if start_btn.draw():
-            pg.init()
-            next_level()
-        if exit_btn.draw():
-            break
+        screen.blit(current_bg, (0, 0))
 
-    # what to render if it is results screen
-    elif current_bg == results_bg:
-        draw_score('Your score is: ' + str(score), 370, 490)
+        # what to render if it is menu
+        if current_bg == menu_bg:
+            if start_btn.draw():
+                pg.init()
+                next_level()
+            if exit_btn.draw():
+                running = False
+                break
 
-    # rendering levels themselves
-    else:
-        sound1.play()
-        world.update()
-        screen.blit(end_img, (current_finish[0] + 105, current_finish[1] - 70))
-        redishes.draw(screen)
-        worms.draw(screen)
-        # checking for coin collision
-        if pg.sprite.spritecollide(player, worms, True):
-            score += 1
-        draw_score(str(score), 910, 70)
-        player.update()
+        # what to render if it is results screen
+        elif current_bg == results_bg:
+            draw_score('Your score is: ' + str(score), 370, 490, False)
+            draw_score('Your time is: ' + str(time), 310, 400, False)
+            if regame_btn.draw():
+                timer = 0
+                first_launch = False
+                playing = False
+                level_index = 0
+                break
 
-        # restarting the level
-        if game_over:
-            if restart_btn.draw():
-                game_over = False
-                score = old_score
-                new_attempt()
-    pg.display.update()
+        # rendering levels themselves
+        else:
+            sound1.play()
+            world.update()
+            screen.blit(end_img, (current_finish[0] + 105, current_finish[1] - 70))
+            redishes.draw(screen)
+            worms.draw(screen)
+            screen.blit(font.render(time, True, (255, 255, 255)), (825, 960))
+            # checking for coin collision
+            if pg.sprite.spritecollide(player, worms, True):
+                score += 1
+            draw_score(str(score), 910, 70)
+            player.update()
+
+            # restarting the level
+            if game_over:
+                if restart_btn.draw():
+                    game_over = False
+                    score = old_score
+                    new_attempt()
+        pg.display.update()
 pg.quit()
