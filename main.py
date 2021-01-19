@@ -35,7 +35,7 @@ pg.time.set_timer(pg.USEREVENT, 10)
 
 # sounds
 sound1 = pg.mixer.Sound('source/music.wav')
-sound1.set_volume(0)
+sound1.set_volume(0.01)
 
 
 # button class
@@ -49,6 +49,7 @@ class Button():
 
     def draw(self):
         action = False
+        keys = pg.key.get_pressed()
         pos = pg.mouse.get_pos()
         if self.rect.collidepoint(pos):
             if pg.mouse.get_pressed()[0] and not self.clicked:
@@ -57,6 +58,8 @@ class Button():
 
         if not pg.mouse.get_pressed()[0]:
             self.clicked = False
+        if keys[pg.K_SPACE]:
+            action = True
         screen.blit(self.image, self.rect)
         return action
 
@@ -91,7 +94,7 @@ def results():
 clock = pg.time.Clock()
 
 # level system
-levels = [menu(), level1(), level2(), level3(), level4(), level5(), level6(), level7(), results()]
+levels = [menu(), level1(), level2(), level3(), level4(), level5(), level6(), level7(), level8(), level9(), level10(), results()]
 level_index = 0
 current_lvl = levels[level_index]['map']
 current_finish = levels[level_index]['finish']
@@ -344,11 +347,13 @@ while running:
     time = '0'
     minutes = 0
     playing = True
+    score = 0
     pg.init()
     if not first_launch:
         next_level()
     while playing:
         clock.tick(120)
+        keys = pg.key.get_pressed()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 playing = False
@@ -362,6 +367,12 @@ while running:
                     time = '0' + str(minutes) + ':0' + str(timer)[:1] + ':' + str(timer)[2:4]
                 else:
                     time = '0' + str(minutes) + ':' + str(timer)[:2] + ':' + str(timer)[3:5]
+            elif keys[pg.K_ESCAPE]:
+                timer = 0
+                first_launch = False
+                playing = False
+                level_index = 0
+                break
 
         screen.blit(current_bg, (0, 0))
 
